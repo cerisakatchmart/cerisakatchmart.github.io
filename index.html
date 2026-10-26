@@ -218,6 +218,9 @@
     .tag { border: 1px solid var(--line); color: var(--accent); padding: 3px 12px; border-radius: 999px; font-size: .82rem; font-weight: 500; }
     .label { font-weight: 700; font-size: .82rem; margin-bottom: 8px; }
     .label::after { content: "/"; margin-left: 2px; }
+    #nowPlaying a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+    .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #1db954; margin: 0 6px 1px 2px; animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
 
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }
     .card {
@@ -267,7 +270,7 @@
     .reveal.visible { opacity: 1; transform: none; }
     @media (prefers-reduced-motion: reduce) {
       .reveal { opacity: 1; transform: none; transition: none; }
-      .butterfly { animation: none; }
+      .butterfly, .live-dot { animation: none; }
       html { scroll-behavior: auto; }
     }
 
@@ -414,7 +417,7 @@
               <span class="tag">Research</span>
             </div>
             <div class="label" style="margin-top:28px">Currently</div>
-            <p>📚 Reading: <em>The Art of Logic in an Illogical World</em><br />🎧 Listening: <em>Pylon</em><br />🛠 Building: <em>Intuition</em></p>
+            <p>📚 Reading: <em>The Art of Logic in an Illogical World</em><br />🎧 <span id="listenLabel">Listening</span>: <em id="nowPlaying">Pylon</em><br />🛠 Building: <em>Intuition</em></p>
           </div>
         </div>
       </div>
@@ -573,6 +576,27 @@
         `<path d="${gills}" stroke-width=".9" />` +
         `<circle cx="${cx}" cy="${cy}" r="${(r * .17).toFixed(1)}" stroke-width="1.6" />`);
     });
+
+    // Live "Listening" line from Last.fm (Spotify scrobbles there)
+    const LASTFM_USER = 'crazyoverchuu';
+    const LASTFM_KEY = 'PASTE_YOUR_API_KEY_HERE';  // EDIT: from last.fm/api/account/create
+    async function updateListening() {
+      if (LASTFM_KEY.startsWith('PASTE')) return;  // no key yet: keep the text in the HTML
+      try {
+        const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${LASTFM_USER}&api_key=${LASTFM_KEY}&format=json&limit=1`;
+        const track = (await (await fetch(url)).json()).recenttracks.track[0];
+        if (!track) return;
+        const live = track['@attr']?.nowplaying === 'true';
+        const a = document.createElement('a');
+        a.href = track.url; a.target = '_blank'; a.rel = 'noopener';
+        a.textContent = `${track.name} — ${track.artist['#text']}`;
+        const el = document.getElementById('nowPlaying');
+        el.replaceChildren(...(live ? [Object.assign(document.createElement('span'), { className: 'live-dot', title: 'Playing now' })] : []), a);
+        document.getElementById('listenLabel').textContent = live ? 'Listening' : 'Last played';
+      } catch (e) {}  // Last.fm down or blocked: keep whatever is showing
+    }
+    updateListening();
+    setInterval(updateListening, 60000);
 
     // Fade sections in as you scroll
     const io = new IntersectionObserver(entries => {
