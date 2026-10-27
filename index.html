@@ -588,7 +588,8 @@
         if (!track) return;
         const live = track['@attr']?.nowplaying === 'true';
         const a = document.createElement('a');
-        a.href = track.url; a.target = '_blank'; a.rel = 'noopener';
+        a.href = `https://open.spotify.com/search/${encodeURIComponent(`${track.name} ${track.artist['#text']}`)}`;
+        a.target = '_blank'; a.rel = 'noopener';
         a.textContent = `${track.name} — ${track.artist['#text']}`;
         const el = document.getElementById('nowPlaying');
         el.replaceChildren(...(live ? [Object.assign(document.createElement('span'), { className: 'live-dot', title: 'Playing now' })] : []), a);
